@@ -24,6 +24,26 @@ db = SQLAlchemy(app)
 
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
 
+class RentalProperty(db.Model):
+    __tablename__ = "rental_property"
+    rental_property_id = db.Column(UUID(as_uuid=True), primary_key=True, server_default=sa_text("uuid_generate_v4()"))
+    address_1 = db.Column(db.String(256))
+    city = db.Column(db.String(128))
+    state = db.Column(db.String(8))
+    zip = db.Column(db.String(16))
+    latitude = db.Column(db.Float())
+    longitude = db.Column(db.Float())
+    purchase_price = db.Column(db.Float())
+    after_repair_price = db.Column(db.Float())
+    purchase_closing_cost = db.Column(db.Float())
+    repair_cost = db.Column(db.Float())
+    down_payment_percentage = db.Column(db.Float())
+    loan_interest_rate = db.Column(db.Float())
+    rent_per_unit = db.Column(db.Float())
+    rent_num_units = db.Column(db.Integer())
+    property_taxes = db.Column(db.Float())
+    insurance = db.Column(db.Float())
+
 class RedfinHouse(db.Model):
     __tablename__ = "redfin_house"
 
