@@ -9,6 +9,8 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import text as sa_text
 import psycopg2
 import pandas
+import requests
+import json
 
 # initialize our Flask application
 # SQLALCHEMY_DATABASE_URI = 'postgresql://farye:@localhost/test'
@@ -24,6 +26,9 @@ db = SQLAlchemy(app)
 
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
 
+"""
+class RentalProperty for adding rental property to evaluate
+"""
 class RentalProperty(db.Model):
     __tablename__ = "rental_property"
     rental_property_id = db.Column(UUID(as_uuid=True), primary_key=True, server_default=sa_text("uuid_generate_v4()"))
@@ -43,6 +48,30 @@ class RentalProperty(db.Model):
     rent_num_units = db.Column(db.Integer())
     property_taxes = db.Column(db.Float())
     insurance = db.Column(db.Float())
+    created_at = db.Column(db.DateTime(),server_default=sa_text("now()"))
+    updated_at = db.Column(db.DateTime(),server_default=sa_text("now()"))
+
+class RentalZipInfo(db.Model):
+    __tablename__ = "rental_zip_info"
+    zip = db.Column(db.String(16), primary_key=True)
+    state_name = db.Column(db.String(64))
+    state_abbr = db.Column(db.String(8))
+    county_name = db.Column(db.String(64))
+    area_name = db.Column(db.String(128))
+    area_token = db.Column(db.String(128))
+    metro = db.Column(db.Integer())
+    fmr_type = db.Column(db.Integer())
+    fmr0 = db.Column(db.Float())
+    fmr1 = db.Column(db.Float())
+    fmr2 = db.Column(db.Float())
+    fmr3 = db.Column(db.Float())
+    fmr4 = db.Column(db.Float())
+    overall_rank = db.Column(db.Integer())
+    overall_percentile = db.Column(db.Float())
+    year = db.Column(db.Integer())
+    created_at = db.Column(db.DateTime(),server_default=sa_text("now()"))
+    updated_at = db.Column(db.DateTime(),server_default=sa_text("now()"))
+    # {"zip":92630,"state_name":"California","state_abbr":"CA","county_name":"Orange County","year":2020,"fmr0":1563,"fmr1":1785,"fmr2":2216,"fmr3":3098,"fmr4":3578,"area_name":"Santa Ana-Anaheim-Irvine, CA HUD Metro FMR Area","area_token":"santa-ana-anaheim-irvine-ca-hud-metro-fmr-area","metro":1,"fmr_type":40,"overall_rank":6,"overall_percentile":99.769}
 
 class RedfinHouse(db.Model):
     __tablename__ = "redfin_house"
@@ -167,6 +196,41 @@ def stopInstance():
        instance_id = posted_data['instance_id']
        terminate = ec2.terminate_instances(InstanceIds=[instance_id])
        return jsonify(terminate)
+
+@app.route("/house", methods=["POST"])
+def addHouse():
+    data = request.get_json()
+    if 'address1' not in data:
+       return jsonify({ 'errors': [ { 'title': 'Invalid Address', 'detail': 'The address field is not set. Set address1' } ]}), 400
+    if 'city' not in data:
+       return jsonify({ 'errors': [ { 'title': 'Invalid City', 'detail': 'The city field is not set. Set city' }]}), 400
+    return jsonify(data)
+
+@app.route("/zip", methods=["POST"])
+def addZip():
+    data = request.get_json()
+    # Add the person to the database
+    db.session.add(RentalZipInfo(data))
+    db.session.commit()
+
+@app.route("/zip/<zip_code>", methods=["GET"])
+def getZip(zip_code=0):
+    r = requests.get(f'https://www.rentdata.org/data/zip?zip=%s' % zip_code)
+    dictZip = r.content.decode("UTF-8")
+    zipData = json.loads(dictZip)
+    if zipData is None:
+        return jsonify({ 'errors': [ { 'title': 'Invalid zip. Not found.' } ]}), 404
+    # Look for the zip code
+    zipCode = RentalZipInfo.query.filter_by(zip=str(zipData['zip'])).first()
+    if zipCode is not None:
+        return jsonify({ 'errors': [ { 'title': 'The zip code has been already found. Can not add' } ] }), 409
+    db.session.add(RentalZipInfo(**zipData))
+    db.session.commit()
+    return r.content
+    # return jsonify(r.content)
+
+def returnBadRequest(err_msg):
+    return "no string"
 
 """
 def import_csv function for ingesting every file within the directory csv
