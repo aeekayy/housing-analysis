@@ -1,6 +1,6 @@
 absl-py==0.9.0
 aniso8601==8.0.0
-ansible==2.9.10
+ansible==2.10.0
 appdirs==1.4.3
 astunparse==1.6.3
 bcrypt==3.1.7
