@@ -43,7 +43,7 @@ opt-einsum==3.3.0
 panda==0.3.1
 pandas==1.1.0
 paramiko==2.7.1
-Pillow==7.2.0
+Pillow==9.0.0
 pipenv==2018.11.26
 protobuf==3.12.4
 psycopg2==2.8.5
